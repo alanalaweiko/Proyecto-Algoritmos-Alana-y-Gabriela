@@ -44,6 +44,12 @@ class App:
         self.cargar_nacionalidades()
         print("... Informacion cargada Exitosamente")
 
+    def listar_obras_deptos(self):
+        """
+        Mostrar al usuario una lista de los departamentos del museo, para luego seleccionar un departamento y mostrar las obras de ese departamento y seguido de eso que el usuario tenga la opcion de visualizar los detalles de la obra deseada.
+        """
+        pass
+
     def iniciar(self):
         """
         Inicializar la aplicacion cargando la info en el sistema y presentando al usuario un menu
@@ -59,4 +65,19 @@ class App:
             print("1. Ver lista de obras por Departamento.\n2. Ver lista de obras por Nacionalidad del Autor.\n3. Ver lista de obras por nombre del autor.\n4. Salir")
 
             option = input("\nIngrese la opcion correspondiente a la accion que desea realizar: ")
+            #validar que la opcion sea un numero y la opcion se encuentre en el rango del 1 al 5 sin incluir el 5.
+            while (not option.isnumeric()) or (not int(option) in range(1,5)):
+                print("Error! Opcion invalida")
+                option = input("\nIngrese la opcion correspondiente a la accion que desee realizar: ")
+
+            if option == "1":
+                self.listar_obras_deptos()
+            elif option == "2":
+                pass
+            elif option == "3":
+                pass
+            else:
+                print("\nAdios")
+                break
+
 
