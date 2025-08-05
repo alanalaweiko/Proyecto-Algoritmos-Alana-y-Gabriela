@@ -1,8 +1,14 @@
+import requests 
+from Departamento import Departamento
+from Autor import Autor
+from Obra import Obra
+import time 
+
 class App:
     """
     Representa la aplicacion en si.
     
-    Atributos:
+   Atributos:
    deptos (list[Departamento]): lista de instancias de la clase Departamento que representa los departamentos del museo.
    autores (list[Autores]): lista de instancias de la clase Autor que representa los autores de las Obras que hay en el museo.
    obras (list[Obra]): lista de instancias de la clase Obra que representa las Obras del museo.
@@ -20,7 +26,29 @@ class App:
         """
         Cargar los departamentos de la API
         """
-        pass
+        #Respuesta que se recibira de la API
+        response = requests.get("https://collectionapi.metmuseum.org/public/collection/v1/departments")
+       
+        #Validar el status de la respuesta. Si es 200 es correcta si no avisar que hubo un error
+        if response.status_code == 200:
+            #Transformo la respuesta de la API en json
+            data = response.json()
+            
+            #Obtengo la lista de departamentos del json anterior
+            lista_deptos = data["departments"]
+
+            #Itero sobre esa lista para obtener la info de los deptos y crear los objetos para agregarlos en la lista
+            for info_depto in lista_deptos:
+
+                id = info_depto["departmentId"] #Obtengo Id
+                nombre = info_depto["displayName"] #Obtengo el nombre
+
+                departamento = Departamento(id, nombre)
+
+                self.deptos.append(departamento)
+        else:
+            print("Hubo algun error al intentar obtener los datos de la API")
+
 
     def cargar_obras_autores(self):
         """
