@@ -49,133 +49,6 @@ class App:
         else:
             print("Hubo algun error al intentar obtener los datos de la API")
 
-
-    def cargar_obras_autores(self):
-        """
-        Cargar las obras a partir de la API y a su vez cargar los autores
-        """
-        #Respuesta que se recibira de la API
-        response = requests.get("https://collectionapi.metmuseum.org/public/collection/v1/objects")
-
-        #Validar el status de la respuesta. Si es 200 es correcto si no avisar que hubo un error 
-        if response.status_code == 200:
-            #Transformo la respuesta de la API en json
-            data = response.json()
-
-            #Obtengo la lista de IDs de Obras del json anterior
-            lista_obrasIDs = data["objectIDs"]
-
-            pausa = 2
-            indice = 1
-            faltantes = []
-
-            for index in range(0, 20):
-                #A partir de los IDs llamo a API que obtendra la informacion correspondiente a la obra
-
-                #Configuro el link para obtener una obra dado el  id
-                link = f"https://collectionapi.metmuseum.org/public/collection/v1/objects/{lista_obrasIDs[index]}"
-
-
-                response2 = requests.get(link)
-                if response2.status_code == 200:
-                    data = response2.json()
-
-                    #Obtengo los datos referentes al autor
-                    nombre = data["artistDisplayName"]
-                    autor = None
-
-                    if self.buscar_autor(nombre) != None:
-                        autor = self.buscar_autor(nombre)
-                    else:
-                        nacionalidad = data["artistNationality"]
-                        fecha_nac = data["artistBeginDate"]
-                        fecha_muerte = data["artistEndDate"]
-                        autor = Autor(nombre, nacionalidad, fecha_nac, fecha_muerte)
-                        self.autores.append(autor)
-
-                    titulo = data["title"]
-                    depto = self.buscar_depto(data["department"])
-                    tipo = data["classification"]
-                    anio_creacion = data["objectDate"]
-                    imagen = data["primaryImage"]
-
-
-                    obra = Obra(titulo, depto, autor, tipo, anio_creacion, imagen)
-                    print("Obra creada")
-                    print(obra.titulo)
-                    print("\n\n")
-                    self.obras.append(obra)
-                elif response2.status_code in (403, 429):
-                    faltantes.append(id)
-                    print(f"\nFalto el {id}\n")
-
-                print(f"\nIntento {indice}\n")
-                indice+=1
-
-
-                for intento in range(5):
-                    time.sleep(pausa)
-
-                    #Respuesta recibida por la API
-                    response2 = requests.get(link)
-                    if response2.status_code == 200:
-                        data = response2.json()
-
-                        #Obtengo los datos referentes al autor
-                        nombre = data["artistDisplayName"]
-
-                        autor = None
-
-                        if self.buscar_autor(nombre) != None:
-                            autor= self.buscar_autor(nombre)
-                        else:
-                            nacionalidad = data["artistNationality"]
-                            fecha_nac = data["artistBeginDate"]
-                            fecha_muerte = data["artistEndDate"]  
-
-                            autor = Autor(nombre, nacionalidad, fecha_nac, fecha_muerte)
-                            self.autores.append(autor)
-
-                        titulo = data["title"]
-                        depto = self.buscar_depto(data["department"])
-                        tipo = data["classification"]
-                        anio_creacion = data["objectDate"]
-                        imagen = data["primaryImage"]
-
-
-                        obra = Obra(titulo,depto, autor, tipo, anio_creacion,imagen)
-                        print("Obra creada")
-                        print(obra.titulo)
-                        print("\n\n")
-                        self.obras.append(obra)
-                        break
-
-                    elif response2.status_code in (403, 429):
-                        espera = 2 ** intento       #1 s, luego 2 s, luego 4 s...
-                        print(f"\n  Bloqueo temporal (intento {intento+1}); "
-                           f"esperando {espera} s…")
-                        time.sleep(espera)
-
-                    else:
-                        print("\nHubo algun error al intentar obtener los datos de la API")
-                        break
-
-                indice+=1
-                if indice % 500 ==0:
-                    print(f"\n{indice:,} obras procesadas...")
-
-        else:
-            print("Hubo algun error al intentar obtener los datos de la API")
-            
-
-    def buscar_autor(self, nombre):
-        if len(self.autores) != 0:
-            for autor in self.autores:
-                if autor.nombre == nombre:
-                    return autor
-        else:
-            return None
-        
     def buscar_depto(self,nombre):
         if len(self.deptos)!= 0:
             for depto in self.deptos:
@@ -189,20 +62,19 @@ class App:
             return depto_nuevo
         else:
             return None
-
+        
     def cargar_nacionalidades(self):
         """
         Cargar nacionalidades
         """
         pass
-    
+
     def cargar(self):
         """
         Cargar TODA la informacion de sistema
         """
         print("\nCargando...")
         self.cargar_deptos()
-        self.cargar_obras_autores()
         self.cargar_nacionalidades()
         print("... Informacion cargada Exitosamente")
 
@@ -212,7 +84,7 @@ class App:
         Mostrar al usuario una lista de los departamentos del museo, para luego seleccionar un departamento y mostrar las obras de ese departamento y seguido de eso que el usuario tenga la opcion de visualizar los detalles de la obra deseada.
         """
         print("\n==============================")
-        print("    SELECCIONE UN DEPARTAMENTO")
+        print("    SELECCIONE EL DEPARTAMENTO")
         print("==============================")
         count = 1
         for depto in self.deptos:
@@ -232,63 +104,103 @@ class App:
 
                 lista_obras = self.buscar_obras_deptos(depto_select)
 
-                if len(lista_obras) == 0:
-                    print("\nNo hay obras en el depto selccionado.")
-                else:
-                    print("\n==============================================================")
-                    print(f" SELECCIONE LA OBRA DEL DEPARTAMENTO {depto_select.nombre}")
-                    print("=============================================================")
-
-                    count = 1
-                    for obra in lista_obras:
-                        print(f"{count}. {obra.titulo}")
-                        count+=1
-
-                    print(f"{count}. Salir")
-
-                    option = input("\nIngrese la opcion deseada:")
-                    while (not option.isnumeric) or (not int(option) in range(1, count+1)):
-                        print("\nError! Opcion invalida")
-                        option = input("Ingrese la opcion deseada: ")
-
-                    if int(option) != count:
-                        indice = int(option) - 1
-                        obra_select = lista_obras[indice]
-
-                        print("\n======================================")
-                        print(f"DETALLE DE LA OBRA {obra_select.titulo}")
-                        print("=======================================")
-                        
-                        print(f"\n{obra_select.mostrar()}")
-
-
-
+               
+    
+   
     def buscar_obras_deptos(self, depto):
-        obras = []
-        for obra in self.obras:
-            if obra.depto.id == depto.id:
-                obras.append(obra)
+        response = requests.get(f"https://collectionapi.metmuseum.org/public/collection/v1/objects?departmentIds={depto.id}")
+        data = response.json()
+        ids_obras = data["objectIDs"]
 
-        return obras
+        total = len(ids_obras)
+        index = 0
+
+        while index < total:
+            bloque_ids = ids_obras[index: index+20]
+            
+            for id_b in bloque_ids:
+                url = f"https://collectionapi.metmuseum.org/public/collection/v1/objects/{id_b}"
+
+                response_obra = requests.get(url)
+
+                data_obra = response_obra.json()
+
+                obra_actual = self.buscar_obra(data_obra["objectID"])
+                
+                if obra_actual != None:
+                    print(f"ID: {obra_actual.id} - Titulo: {obra_actual.titulo}")
+                else:
+                    id_obra = data_obra["objectID"]
+                    titulo = data_obra["title"]
+                    tipo = data_obra["classification"]
+                    anio_creacion = data_obra["objectDate"]
+                    imagen = data_obra["primaryImage"]
+
+                    autor = self.buscar_autor(data_obra["artistDisplayName"])
+                    if autor == None:
+                        autor = Autor(data_obra["artistDisplayName"], data_obra["artistNationality"], data_obra["artistBeginDate"], data_obra["artistEndDate"])
+                        self.autores.append(autor)
+
+                    obra_nueva = Obra(id_obra, titulo, depto, autor, tipo, anio_creacion, imagen)
+
+                    print(f"ID: {obra_nueva.id} - Titulo: {obra_nueva.titulo}")
+
+                    self.obras.append(obra_nueva)
+
+                time.sleep(0.3)
+
+            index +=20
+            if index >= total:
+                print("\nYa no hay mas obras")
+                break
+
+            time.sleep(3)
 
 
+            mostrar_detalle = input("\nDesea mostrar detalles de una obra:\n1. Si\n2. No\nIngrese la opcion deseada ")
+            while (not mostrar_detalle.isnumeric()) or (not int(mostrar_detalle) in range(1,3)):
+                print("\nError! Debes ingresar 1 si quieres ver mas detalles o 2 si no quieres")
+                mostrar_detalle = input("Desea mostrar detalles de una obra:\n1. Si\n2. No\nIngrese la opcion deseada ")
 
+            if mostrar_detalle == "1":
+                ver_detalle = input("\nIngrese el ID de la obra de la cual quiere ver detalles: ")
+
+                while (not ver_detalle.isnumeric()) or (not int(ver_detalle) > 0) or (self.buscar_obra(int(ver_detalle)) == None):
+                    print("Error! Debes ingresar el numero que corresponda al ID de una obra y debe ser mayor que cero")
+                    ver_detalle = input("\nIngrese el ID de la obra de la cual quiere ver detalles: ")
+                
+                obra_select = self.buscar_obra(int(ver_detalle))
+                print(f"\n{obra_select.mostrar()}\n")
+                
+            seguir=input("\nDeseas Mostrar 20 obras mas? [S/N]: ").lower()
+            while seguir not in ["s", "n"]:
+                print("Error! Ingresa S si deseas seguir viendo obras o N si deseas no ver mas obras")
+                seguir=input("\nDeseas Mostrar 20 obras mas? [S/N]: ").lower()
+
+            if seguir != "s":
+                print("\nConsulta terminada.")
+                break
+
+    def buscar_obra(self, id):
+        if len(self.obras) != 0:
+          for obra in self.obras:
+               if obra.id == id:
+                    return obra
+        return None
+        
+    def buscar_autor(self, nombre):
+        if len(self.autores) != 0:
+            for autor in self.autores:
+                if autor.nombre == nombre:
+                    return autor
+        return None
+    
 
     def iniciar(self):
         """
         Inicializar la aplicacion cargando la info en el sistema y presentando al usuario un menu.
         """
         self.cargar() #Cargar informacion
-
-        print(len(self.obras))
-        print("\n")
-
-        for autor in self.autores:
-            print(autor.mostrar())
-
-
-        for obra in self.obras:
-            print(obra.mostrar())
 
         #While True para que se ejecute el menu hasta que el usuario desee salir del sistema
         while True:

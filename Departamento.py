@@ -17,6 +17,6 @@ class Departamento:
         Retorna un str con los atributos de la clase
         """
 
-        return f"ID: {self.id}\nNombre: {self.nombre}"
+        return f"ID: {self.id}\nNombre: {self.nombre}\n\n"
 
 

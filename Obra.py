@@ -1,3 +1,5 @@
+from Departamento import Departamento
+
 class Obra:
     """
     Representa una Obra.
@@ -11,7 +13,8 @@ class Obra:
     imagen (str): URL de la imagen de la obra.
     """
 
-    def _init_(self, titulo, depto, autor, tipo, anio_creacion, imagen):
+    def __init__(self, id, titulo, depto, autor, tipo, anio_creacion, imagen):
+        self.id = id
         self.titulo = titulo
         self.depto = depto
         self.autor = autor
@@ -20,6 +23,5 @@ class Obra:
         self.imagen = imagen
 
     def mostrar(self):
-        return f"Titulo: {self.titulo}\nDepartamento: {self.depto.nombre}\nAutor:\n{self.autor.mostrar()}\nTipo: {self.tipo}\nAño de Creacion: {self.anio_creacion}\nImagen: {self.imagen}"
-
+        return f"ID: {self.id}\nTitulo: {self.titulo}\nDepartamento: {self.depto.nombre}\nAutor:\n{self.autor.mostrar()}\nTipo: {self.tipo}\nAño de Creacion: {self.anio_creacion}\nImagen: {self.imagen}"
         
