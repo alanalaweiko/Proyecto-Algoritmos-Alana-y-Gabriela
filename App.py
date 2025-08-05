@@ -168,8 +168,27 @@ class App:
             print("Hubo algun error al intentar obtener los datos de la API")
             
 
-    
+    def buscar_autor(self, nombre):
+        if len(self.autores) != 0:
+            for autor in self.autores:
+                if autor.nombre == nombre:
+                    return autor
+        else:
+            return None
+        
+    def buscar_depto(self,nombre):
+        if len(self.deptos)!= 0:
+            for depto in self.deptos:
+                if depto.nombre == nombre:
+                    return depto
+                
+            id =len(self.deptos) + 3
+            depto_nuevo = Departamento(id, nombre)
+            self.deptos.append(depto_nuevo)
 
+            return depto_nuevo
+        else:
+            return None
 
     def cargar_nacionalidades(self):
         """
@@ -186,6 +205,7 @@ class App:
         self.cargar_obras_autores()
         self.cargar_nacionalidades()
         print("... Informacion cargada Exitosamente")
+
 
     def listar_obras_deptos(self):
         """
