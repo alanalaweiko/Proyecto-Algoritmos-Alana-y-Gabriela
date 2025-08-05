@@ -14,3 +14,6 @@ class Autor:
         self.nacionalidad = nacionalidad
         self.fecha_nac = fecha_nac
         self.fecha_muerte = fecha_muerte
+
+    def mostrar(self):
+        return f"Nombre: {self.nombre}\nNacionalidad: {self.nacionalidad}\nFecha de Nacimiento: {self.fecha_nac}\nFecha de Muerte: {self.fecha_muerte}"
