@@ -54,7 +54,122 @@ class App:
         """
         Cargar las obras a partir de la API y a su vez cargar los autores
         """
-        pass
+        #Respuesta que se recibira de la API
+        response = requests.get("https://collectionapi.metmuseum.org/public/collection/v1/objects")
+
+        #Validar el status de la respuesta. Si es 200 es correcto si no avisar que hubo un error 
+        if response.status_code == 200:
+            #Transformo la respuesta de la API en json
+            data = response.json()
+
+            #Obtengo la lista de IDs de Obras del json anterior
+            lista_obrasIDs = data["objectIDs"]
+
+            pausa = 2
+            indice = 1
+            faltantes = []
+
+            for index in range(0, 20):
+                #A partir de los IDs llamo a API que obtendra la informacion correspondiente a la obra
+
+                #Configuro el link para obtener una obra dado el  id
+                link = f"https://collectionapi.metmuseum.org/public/collection/v1/objects/{lista_obrasIDs[index]}"
+
+
+                response2 = requests.get(link)
+                if response2.status_code == 200:
+                    data = response2.json()
+
+                    #Obtengo los datos referentes al autor
+                    nombre = data["artistDisplayName"]
+                    autor = None
+
+                    if self.buscar_autor(nombre) != None:
+                        autor = self.buscar_autor(nombre)
+                    else:
+                        nacionalidad = data["artistNationality"]
+                        fecha_nac = data["artistBeginDate"]
+                        fecha_muerte = data["artistEndDate"]
+                        autor = Autor(nombre, nacionalidad, fecha_nac, fecha_muerte)
+                        self.autores.append(autor)
+
+                    titulo = data["title"]
+                    depto = self.buscar_depto(data["department"])
+                    tipo = data["classification"]
+                    anio_creacion = data["objectDate"]
+                    imagen = data["primaryImage"]
+
+
+                    obra = Obra(titulo, depto, autor, tipo, anio_creacion, imagen)
+                    print("Obra creada")
+                    print(obra.titulo)
+                    print("\n\n")
+                    self.obras.append(obra)
+                elif response2.status_code in (403, 429):
+                    faltantes.append(id)
+                    print(f"\nFalto el {id}\n")
+
+                print(f"\nIntento {indice}\n")
+                indice+=1
+
+
+                for intento in range(5):
+                    time.sleep(pausa)
+
+                    #Respuesta recibida por la API
+                    response2 = requests.get(link)
+                    if response2.status_code == 200:
+                        data = response2.json()
+
+                        #Obtengo los datos referentes al autor
+                        nombre = data["artistDisplayName"]
+
+                        autor = None
+
+                        if self.buscar_autor(nombre) != None:
+                            autor= self.buscar_autor(nombre)
+                        else:
+                            nacionalidad = data["artistNationality"]
+                            fecha_nac = data["artistBeginDate"]
+                            fecha_muerte = data["artistEndDate"]  
+
+                            autor = Autor(nombre, nacionalidad, fecha_nac, fecha_muerte)
+                            self.autores.append(autor)
+
+                        titulo = data["title"]
+                        depto = self.buscar_depto(data["department"])
+                        tipo = data["classification"]
+                        anio_creacion = data["objectDate"]
+                        imagen = data["primaryImage"]
+
+
+                        obra = Obra(titulo,depto, autor, tipo, anio_creacion,imagen)
+                        print("Obra creada")
+                        print(obra.titulo)
+                        print("\n\n")
+                        self.obras.append(obra)
+                        break
+
+                    elif response2.status_code in (403, 429):
+                        espera = 2 ** intento       #1 s, luego 2 s, luego 4 s...
+                        print(f"\n  Bloqueo temporal (intento {intento+1}); "
+                           f"esperando {espera} s…")
+                        time.sleep(espera)
+
+                    else:
+                        print("\nHubo algun error al intentar obtener los datos de la API")
+                        break
+
+                indice+=1
+                if indice % 500 ==0:
+                    print(f"\n{indice:,} obras procesadas...")
+
+        else:
+            print("Hubo algun error al intentar obtener los datos de la API")
+            
+
+    
+
 
     def cargar_nacionalidades(self):
         """
