@@ -19,4 +19,7 @@ class Obra:
         self.anio_creacion = anio_creacion
         self.imagen = imagen
 
+    def mostrar(self):
+        return f"Titulo: {self.titulo}\nDepartamento: {self.depto.nombre}\nAutor:\n{self.autor.mostrar()}\nTipo: {self.tipo}\nAño de Creacion: {self.anio_creacion}\nImagen: {self.imagen}"
+
         
