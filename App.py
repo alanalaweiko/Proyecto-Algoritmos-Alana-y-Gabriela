@@ -263,14 +263,36 @@ class App:
 
 
 
+    def buscar_obras_deptos(self, depto):
+        obras = []
+        for obra in self.obras:
+            if obra.depto.id == depto.id:
+                obras.append(obra)
+
+        return obras
+
+
+
+
     def iniciar(self):
         """
-        Inicializar la aplicacion cargando la info en el sistema y presentando al usuario un menu
+        Inicializar la aplicacion cargando la info en el sistema y presentando al usuario un menu.
         """
         self.cargar() #Cargar informacion
 
+        print(len(self.obras))
+        print("\n")
+
+        for autor in self.autores:
+            print(autor.mostrar())
+
+
+        for obra in self.obras:
+            print(obra.mostrar())
+
         #While True para que se ejecute el menu hasta que el usuario desee salir del sistema
         while True:
+            
             print("\n===============================")
             print("     BIENVENIDOS A MetroArt")
             print("===============================")
