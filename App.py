@@ -211,7 +211,57 @@ class App:
         """
         Mostrar al usuario una lista de los departamentos del museo, para luego seleccionar un departamento y mostrar las obras de ese departamento y seguido de eso que el usuario tenga la opcion de visualizar los detalles de la obra deseada.
         """
-        pass
+        print("\n==============================")
+        print("    SELECCIONE UN DEPARTAMENTO")
+        print("==============================")
+        count = 1
+        for depto in self.deptos:
+            print(f"{count}. {depto.nombre}")
+            count+=1
+
+            print(f"{count}. Salir")
+
+            option = input("\nIngrese la opcion deseada: ")
+            while (not option.isnumeric()) or (not int (option) in range(1, count+1)):
+                print("\nError! Opcion invalida")
+                option = input("Ingrese la opcion deseada: ")
+
+            if int(option) != count:
+                indice = int(option) - 1
+                depto_select = self.deptos[indice]
+
+                lista_obras = self.buscar_obras_deptos(depto_select)
+
+                if len(lista_obras) == 0:
+                    print("\nNo hay obras en el depto selccionado.")
+                else:
+                    print("\n==============================================================")
+                    print(f" SELECCIONE LA OBRA DEL DEPARTAMENTO {depto_select.nombre}")
+                    print("=============================================================")
+
+                    count = 1
+                    for obra in lista_obras:
+                        print(f"{count}. {obra.titulo}")
+                        count+=1
+
+                    print(f"{count}. Salir")
+
+                    option = input("\nIngrese la opcion deseada:")
+                    while (not option.isnumeric) or (not int(option) in range(1, count+1)):
+                        print("\nError! Opcion invalida")
+                        option = input("Ingrese la opcion deseada: ")
+
+                    if int(option) != count:
+                        indice = int(option) - 1
+                        obra_select = lista_obras[indice]
+
+                        print("\n======================================")
+                        print(f"DETALLE DE LA OBRA {obra_select.titulo}")
+                        print("=======================================")
+                        
+                        print(f"\n{obra_select.mostrar()}")
+
+
 
     def iniciar(self):
         """
