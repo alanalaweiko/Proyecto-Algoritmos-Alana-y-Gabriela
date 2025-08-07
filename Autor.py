@@ -9,7 +9,7 @@ class Autor:
     fecha_muerte (str): Fecha de Muerte del Autor.
     """
     
-    def _init_(self, nombre, nacionalidad, fecha_nac, fecha_muerte):
+    def __init__(self, nombre, nacionalidad, fecha_nac, fecha_muerte):
         self.nombre = nombre
         self.nacionalidad = nacionalidad
         self.fecha_nac = fecha_nac

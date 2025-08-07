@@ -7,7 +7,7 @@ class Departamento:
     nombre (str): Nombre del Autor.
     """
 
-    def _init_(self, id, nombre):
+    def __init__(self, id, nombre):
         self.id = id
         self.nombre = nombre
 
