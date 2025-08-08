@@ -1,4 +1,5 @@
 import requests 
+import json
 from Departamento import Departamento
 from Autor import Autor
 from Obra import Obra
@@ -63,18 +64,108 @@ class App:
         else:
             return None
         
+
+    def cargar_obras(self):
+        """
+        Carga una cantidad específica de obras en el sistema
+        """
+
+        response = requests.get("https://collectionapi.metmuseum.org/public/collection/v1/search?hasImages=true&q=true") # Se le pide a la API que busque obras con imágenes y las que están en el dominio público
+        response.raise_for_status() # No rompe código si llega a ver un error
+
+        data = response.json() # Convierte la respuesta de la API a formato JSON.
+
+        
+        id_obras = data.get("objectIDs", []) # Obtiene la lista de ID de las obras
+
+        
+        if not id_obras: # Si la lista de ID está vacía, muestra...
+            print("No se encontraron obras con imágenes disponibles en la API...")
+            return
+
+    
+        ids_obras_limitadas = id_obras[:100] #Limite de obras cargadas
+
+        
+        for i in ids_obras_limitadas: #Itera cada ID de esas obras
+
+            
+            if not self.buscar_obra(i): #Entra en función buscar_obra para ver si existe
+
+                
+                url_obra = f"https://collectionapi.metmuseum.org/public/collection/v1/objects/{i}" # Construye la URL para obtener los detalles de la obra individualmente
+
+                try:
+                    
+                    response_obra = requests.get(url_obra)
+                    response_obra.raise_for_status() # No rompe código si llega a ver un error
+
+                    data_obra = response_obra.json() # Convierte la respuesta a JSON.
+
+                    depto_nombre = data_obra.get("department", "Desconocido") # Busca el nombre, si no existe por defecto es Desconocido
+                    depto_id = data_obra.get("departmentId", -1) # Busca el ID
+
+                    # Busca el departamento en la lista local; si no existe, lo crea y lo añade.
+                    depto = self.buscar_depto(depto_nombre)
+                    if not depto:
+                        depto = Departamento(depto_id, depto_nombre)
+                        self.deptos.append(depto)
+
+                    autor_nombre = data_obra.get("artistDisplayName", "Desconocido") # Busca el nombre, si no existe por defecto es Desconocido
+                    autor = self.buscar_autor(autor_nombre) # Entra en la función buscar_autor y autor_nombre por parámetro
+
+            
+                    if not autor:
+                        autor = Autor(
+                            autor_nombre,
+                            data_obra.get("artistNationality", "Desconocida"),
+                            data_obra.get("artistBeginDate", "Desconocida"),
+                            data_obra.get("artistEndDate", "Desconocida")
+                        )
+                        self.autores.append(autor) #Para agregar autores en la lista self.autores
+
+                    
+                    obra_nueva = Obra(
+                        data_obra["objectID"],
+                        data_obra.get("title", "Sin título"),
+                        depto,
+                        autor,
+                        data_obra.get("classification", "Sin clasificación"),
+                        data_obra.get("objectDate", "Sin fecha"),
+                        data_obra.get("primaryImage", "No disponible")
+                    ) # Crea un nuevo objeto Obra con todos los datos
+
+                    
+                    self.obras.append(obra_nueva) # Añade la nueva obra a la lista de obras del sistema
+
+                    #time.sleep(0.1) 
+
+                except (requests.exceptions.RequestException, json.decoder.JSONDecodeError): #Si llega a haber un error no explota el programa, solo continua
+                    pass
+
+
     def cargar_nacionalidades(self):
         """
-        Cargar nacionalidades
+        Carga las nacionalidades de los autores de las obras
         """
-        pass
+        
+        nacionalidades_unicas = set() #Set() para guardar datos sin que se dupliquen cada vez
+
+        for i in self.obras: #Itera cada obra de la lista
+
+            if i.autor and i.autor.nacionalidad: #Si tiene autor y el autor tiene nacionalidad entra acá
+
+                nacionalidades_unicas.add(i.autor.nacionalidad) #Agrega las Nacionalidades al set() sin repetirse
+
+        self.nacionalidades = sorted(list(nacionalidades_unicas)) #Se convierte en una lista y la ordenamos alfabeticamente. Asignamos esa lista a self.nacionalidades
 
     def cargar(self):
         """
         Cargar TODA la informacion de sistema
         """
-        print("\nCargando...")
+        print("\nCargando información... Calma, puede durar aprox 1 minuto :)")
         self.cargar_deptos()
+        self.cargar_obras()
         self.cargar_nacionalidades()
         print("... Informacion cargada Exitosamente")
 
@@ -91,18 +182,16 @@ class App:
             print(f"{count}. {depto.nombre}")
             count+=1
 
-            print(f"{count}. Salir")
+        print(f"{count}. Salir")
 
-            option = input("\nIngrese la opcion deseada: ")
-            while (not option.isnumeric()) or (not int (option) in range(1, count+1)):
-                print("\nError! Opcion invalida")
-                option = input("Ingrese la opcion deseada: ")
-
-            if int(option) != count:
-                indice = int(option) - 1
-                depto_select = self.deptos[indice]
-
-                lista_obras = self.buscar_obras_deptos(depto_select)
+        option = input("\nIngrese la opcion deseada: ")
+        while (not option.isnumeric()) or (not int (option) in range(1, count+1)):
+            print("\nError! Opcion invalida")
+            option = input("Ingrese la opcion deseada: ")
+        if int(option) != count:
+            indice = int(option) - 1
+            depto_select = self.deptos[indice]
+            lista_obras = self.buscar_obras_deptos(depto_select)
 
                
     
@@ -203,14 +292,134 @@ class App:
                 print("\nConsulta terminada.")
                 break
 
-    def buscar_obra(self, id):
+    
+    def listar_obras_nacionalidades(self):
+        """
+        Muestra la lista de nacionalidades y permite seleccionar una para listar las obras.
+        """
+
+        if not self.nacionalidades: # Verifica si la lista de nacionalidades está vacía y de estarlo manda un mensaje
+            print("\nNo hay nacionalidades cargadas. Por favor, cargue obras primero.")
+            return
+    
+        print("\n======================================")
+        print("     SELECCIONE LA NACIONALIDAD")
+        print("======================================")
+    
+        count = 1 #Contador que inicia en 1
+        
+        for i in self.nacionalidades: # Itera sobre la lista de nacionalidades
+            
+            print(f"{count}. {i}") # Imprime cada nacionalidad con su respectivo número
+            count += 1 #Va sumando 1 al contador inicial
+        
+        print(f"{count}. Salir") # Imprime una opción adicional que muestra el último valor de count y salir
+    
+        # Solicita al usuario que ingrese una opción.
+        option = input("\nIngrese la opción deseada: ")
+        
+        while (not option.isnumeric()) or (not int(option) in range(1, count + 1)): # Verifica que la entrada sea un número y que esté en el rango de opciones válidas
+            print("\nError! Opción inválida.")
+            option = input("Ingrese la opción deseada: ") #Crea un bucl hasta que esta respuesta sea correcta
+    
+        if int(option) == count: # Si la respuesta es igual al número de la opción Salir, sale de la función
+            return  
+    
+
+        nacionalidad_seleccionada = self.nacionalidades[int(option) - 1] #Selecciona nacionalidad en la lista. Se coloca -1 porque los índices inician en cero
+        
+    
+        print(f"\nObras de autores con nacionalidad: {nacionalidad_seleccionada}\n") #Titulo
+     
+        obras_encontradas = []
+        for i in self.obras:
+            if i.autor.nacionalidad == nacionalidad_seleccionada: #Si la nacionalidad escogida es igual a la del autor de la obra
+                obras_encontradas.append(i) #Se agrega la obra a la lista
+        
+        if not obras_encontradas: #Si la lista está vacía muestra lo siguiente...
+            print(f"No se encontraron obras para la nacionalidad: {nacionalidad_seleccionada}.")
+            return
+    
+        for i in obras_encontradas:  # Itera las obras encontradas y muestra la información seleccionada
+            print(f"ID: {i.id} - Título: {i.titulo}")
+    
+        
+        while True: #Especie de submenú
+            
+            opcion_submenu = input("\nOpciones:\n1. Ver detalles de una obra.\n2. Volver al menú principal.\nIngrese una opción: ")
+            
+            if opcion_submenu == "1":
+
+                ver_detalle = int(input("Ingrese el ID de la obra: ")) #Si el usuario decide ver más detalles entra acá
+
+                try:
+        
+                    obra_seleccionada = self.buscar_obra(ver_detalle) #Busca la obra
+
+                    if obra_seleccionada:
+                        print(f"\n{obra_seleccionada.mostrar()}\n") # Si la encuentra, muestra sus detalles de la forma que está en clase Obra
+                    else:
+                        print("Error: ID de obra no encontrado.")
+
+                except ValueError: # Acá se controla los errores, Si la entrada no es un número imprime lo siguiente...
+                    
+                    print("Error: El ID debe ser un número.")
+
+            elif opcion_submenu == "2":
+                break #Sale del bucle
+
+            else:
+                print("Opción inválida.")
+
+    def listar_obras_autor(self):
+        """
+        Permite al usuario buscar obras por el nombre del autor.
+        """
+
+        if not self.autores: # Verifica si la lista de autores (self.autores) está vacía
+            print("No hay autores cargados. Por favor, cargue obras primero.")
+            return
+
+        nombre_autor = input("Ingrese el nombre completo o parcial del autor: ").lower() # Solicita al usuario que ingrese el nombre del autor y convierte la entrada a minúsculas
+
+        obras_encontradas = [] # Crea una lista vacía para guardar las obras
+
+        for i in self.obras: # Itera sobre cada obra en la lista de obras cargadas
+            if nombre_autor in i.autor.nombre.lower(): #Comprueba si el nombre ingresado por el usuario está en la obra iterada
+                obras_encontradas.append(i) # Si hay coincidencia, la obra se añade a la lista de obras encontradas
+
+        if not obras_encontradas: # Después de recorrer todas las obras, si obras_encontradas está vacía imprime...
+            print(f"No se encontraron obras para el autor: {nombre_autor}")
+            return
+
+        print(f"\nObras del autor: {nombre_autor}") #Titulo
+
+        for i in obras_encontradas: # Itera sobre la lista de obras encontradas y muestra la información seleccionada
+            print(f"ID: {i.id} - Título: {i.titulo} - Autor: {i.autor.nombre}")
+
+        print("\nDesea mostrar detalles de una obra:\n1. Si\n2. No")
+        mostrar_detalle = input("\nIngrese la opcion deseada: ")
+
+        if mostrar_detalle == "1":
+
+            id_para_mostrar = int(input("\nIngrese el ID de la obra de la cual quiere ver detalles: ")) # Solicita el ID de la obra para ver los detalles
+
+            obra_seleccionada = self.buscar_obra(int(id_para_mostrar)) #Entra en la función buscar_obra
+
+            if obra_seleccionada:
+                print(f"\n{obra_seleccionada.mostrar()}\n") # Si la obra existe, llama a su método mostrar() en la clase Obra para imprimir todos los detalles
+            else:
+                print("ID de obra no encontrado.")
+
+
+    def buscar_obra(self, id): #Recibe parámetro id
         if len(self.obras) != 0:
           for obra in self.obras:
                if obra.id == id:
                     return obra
         return None
         
-    def buscar_autor(self, nombre):
+    def buscar_autor(self, nombre): #Recibe parámetro nombre
         if len(self.autores) != 0:
             for autor in self.autores:
                 if autor.nombre == nombre:
@@ -224,8 +433,7 @@ class App:
         """
         self.cargar() #Cargar informacion
 
-        #While True para que se ejecute el menu hasta que el usuario desee salir del sistema
-        while True:
+        while True: #While True para que se ejecute el menu hasta que el usuario desee salir del sistema
             
             print("\n===============================")
             print("     BIENVENIDOS A MetroArt")
@@ -234,19 +442,19 @@ class App:
             print("1. Ver lista de obras por Departamento.\n2. Ver lista de obras por Nacionalidad del Autor.\n3. Ver lista de obras por nombre del autor.\n4. Salir")
 
             option = input("\nIngrese la opcion correspondiente a la accion que desea realizar: ")
-            #validar que la opcion sea un numero y la opcion se encuentre en el rango del 1 al 5 sin incluir el 5.
-            while (not option.isnumeric()) or (not int(option) in range(1,5)):
+
+            while (not option.isnumeric()) or (not int(option) in range(1,5)): #validar que la opcion sea un numero (isnumeric) y la opcion se encuentre en el rango del 1 al 5 sin incluir el 5.
                 print("Error! Opcion invalida")
                 option = input("\nIngrese la opcion correspondiente a la accion que desee realizar: ")
 
             if option == "1":
-                self.listar_obras_deptos()
+                self.listar_obras_deptos() #Entra en función listar obras por departamento
             elif option == "2":
-                pass
+                self.listar_obras_nacionalidades() #Entra en función listar obras por nacionalidad
             elif option == "3":
-                pass
+                self.listar_obras_autor() #Entra en función listar obras por nombre del autor
             else:
-                print("\nAdios")
-                break
+                print("\n---------- Fin de la Aplicación. Hasta Luego ----------\n")
+                break #Salir del Bucle
 
 
